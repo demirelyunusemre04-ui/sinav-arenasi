@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>İmam Hatip & Okul Yazılı Arenası</title>
+<style>
+:root{--bg:#0b1329;--panel:#16223f;--panel2:#1e2d53;--text:#f4f7ff;--muted:#b9c5dc;--accent:#38ef7d;--accent2:#11998e;--bad:#ff5e62}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#1b2b50,#0b1329 60%);font-family:system-ui,Segoe UI,Arial,sans-serif;color:var(--text);padding:16px}
+.wrap{max-width:900px;margin:auto}.brand{text-align:center;margin:10px 0 20px}.brand h1{font-size:clamp(1.8rem,5vw,3rem);margin:0;letter-spacing:-1px;color:#6ee7b7}.brand p{color:var(--muted);margin:6px 0}
+.card{background:rgba(22,34,63,.97);border:1px solid #2a3d6c;border-radius:20px;padding:clamp(16px,4vw,28px);box-shadow:0 12px 40px rgba(0,0,0,.5)}
+h2{margin-top:0}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+button,select{font:inherit}button{cursor:pointer;border:0;border-radius:12px;padding:12px 14px;font-weight:700;color:#0b1329;background:linear-gradient(135deg,#38ef7d,#11998e);transition:.15s}
+button:hover{transform:translateY(-2px);filter:brightness(1.1)}button:focus-visible,select:focus-visible{outline:3px solid white;outline-offset:3px}
+.choice{background:var(--panel2);color:var(--text);border:1px solid #364d80;text-align:left;min-height:55px;font-size:.95rem}.choice.selected{border:2px solid #38ef7d;background:#153f3a}
+.primary{width:100%;margin-top:18px;font-size:1.05rem}.secondary{background:#3b4d75;color:white}.hidden{display:none!important}
+label{display:block;font-weight:700;margin:14px 0 6px;color:#cbd5e1}select{width:100%;padding:12px;border-radius:10px;background:#0f172a;color:white;border:1px solid #3b5284}
+.topline{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--muted);font-weight:700;margin-bottom:14px}
+.track{height:8px;background:#0b132a;border-radius:20px;overflow:hidden;margin:10px 0 20px}.fill{height:100%;width:0;background:#38ef7d;transition:width .25s}
+.question{font-size:clamp(1.1rem,2.8vw,1.45rem);line-height:1.4;margin:10px 0 20px}
+.answers{display:grid;gap:10px}.answer{background:#1f315a;color:white;text-align:left;border:1px solid #3b5488}.answer.correct{background:#134e3a;border-color:#38ef7d}.answer.wrong{background:#5a1f2c;border-color:var(--bad)}.answer:disabled{cursor:default;opacity:1}
+.feedback{min-height:26px;margin-top:12px;font-weight:700}.actions{display:flex;gap:10px;margin-top:14px}.actions button{flex:1}
+.result{text-align:center}.score{font-size:3.4rem;font-weight:900;color:#38ef7d;margin:6px}
+.pill{display:inline-block;background:#1f315a;padding:6px 12px;border-radius:30px;color:var(--muted);margin:4px;font-size:.9rem}
+footer{text-align:center;color:#8fa0bd;font-size:.85rem;margin:16px}
+@media(max-width:520px){body{padding:10px}.actions{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="brand">
+  <h1>📚 İmam Hatip Yazılı Arenası</h1>
+  <p>5, 6, 7, 8 ve 9. Sınıf Tüm Kültür ve Meslek Dersleri Soru Bankası</p>
+</header>
+
+<main class="card" id="setup">
+  <h2>Sınav / Çalışma Modülü</h2>
+  <p class="muted">Sınıfını ve çalışmak istediğin dersi seçerek yazılıya hazırlığa başla.</p>
+  
+  <label for="gradeSelect">Sınıf Seviyesi</label>
+  <select id="gradeSelect">
+    <option value="5">5. Sınıf</option>
+    <option value="6">6. Sınıf</option>
+    <option value="7">7. Sınıf</option>
+    <option value="8">8. Sınıf</option>
+    <option value="9">9. Sınıf</option>
+  </select>
+
+  <label>Ders Seçimi</label>
+  <div class="grid" id="subjects"></div>
+
+  <button class="primary" id="start">Yazılı Çalışmasını Başlat →</button>
+  <p class="muted" style="font-size:.85rem; margin-top:14px;">* Her test rastgele 10 sorudan oluşur ve 10 dakika süre tanınır.</p>
+</main>
+
+<section class="card hidden" id="quiz">
+  <div class="topline"><span id="quizInfo"></span><span id="timer">⏱ 10:00</span><span id="counter">1 / 10</span></div>
+  <div class="track"><div class="fill" id="progress"></div></div>
+  <div class="question" id="question"></div>
+  <div class="answers" id="answers"></div>
+  <div class="feedback" id="feedback" aria-live="polite"></div>
+  <div class="actions"><button class="secondary" id="quit">Çalışmayı Bitir</button><button id="next" disabled>Sonraki Soru →</button></div>
+</section>
+
+<section class="card hidden result" id="result">
+  <h2 id="resultTitle">Yazılı Çalışması Tamamlandı!</h2>
+  <div class="score" id="score">0/10</div>
+  <p id="resultText"></p>
+  <div id="resultDetails"></div>
+  <button class="primary" id="again">Yeni Ders / Test Seç</button>
+</section>
+
+<footer>© İmam Hatip Yazılı Arenası · Başarılar Dileriz!</footer>
+</div>
+
+<script>
+const db = {
+  "5": {
+    "Kur'an-ı Kerim": [
+      ["Kur'an-ı Kerim hangi gece indirilmeye başlanmıştır?", ["Kadir Gecesi", "Berat Kandili", "Mevlid Kandili", "Miraç Kandili"], 0],
+      ["Kur'an-ı Kerim'in ilk inen suresi hangisidir?",["Fatiha Suresi", "Alak Suresi", "İhlas Suresi", "Nas Suresi"], 1],
+      ["Kur'an-ı Kerim'in kaç cüzü vardır?",["10", "20", "30", "40"], 2],
+      ["Kur'an-ı Kerim hangi halife döneminde kitap haline (mushaf) getirilmiştir?",["Hz. Ebubekir", "Hz. Ömer", "Hz. Osman", "Hz. Ali"], 0],
+      ["Kur'an'da kaç sure vardır?",["114", "99", "6666", "30"], 0]
+    ],
+    "Din Kültürü": [
+      ["İslam'ın şartı kaç tanedir?",["3", "4", "5", "6"], 2],
+      ["Yalnızca Allah'a ibadet etmek ve O'na hiçbir şeyi ortak koşmamak inancına ne denir?",["Tevhid", "Şirk", "Nifak", "Kİbr"], 0],
+      ["Peygamberlere iman etmek inanç esaslarından kaçıncısıdır?",["3.", "4.", "5.", "6."], 2],
+      ["Hz. Muhammed'in (s.a.v.) babasının adı nedir?",["Abdullah", "Ebu Talip", "Abdulmuttalip", "Hamza"], 0],
+      ["İhlas suresinde özellikle hangi inanç ilkesi vurgulanır?",["Ahiret", "Tevhid (Allah'ın birliği)", "Kader", "Melekler"], 1]
+    ],
+    "Matematik": [
+      ["Bir doğal sayının sağından sola doğru basamak isimleri sırasıyla nasıl başlar?",["Binler, Yüzler, Onlar", "Birler, Onlar, Yüzler", "Yüzler, Binler, Milyonlar", "Onlar, Birler, Yüzler"], 1],
+      ["345.678 sayısının binler basamağındaki rakam kaçtır?",["5", "6", "4", "3"], 2],
+      ["Aşağıdakilerden hangisi bir dar açı ölçüsüdür?",["90°", "120°", "45°", "180°"], 2],
+      ["Paydaları eşit iki kesir toplanırken paylar toplanır, ortak payda nasıl yazılır?",["Aynen yazılır", "Payda ile toplanır", "Çıkarılır", "Çarpılır"], 0],
+      ["100 - 35 işleminin sonucu kaçtır?",["55", "65", "75", "85"], 1]
+    ],
+    "Türkçe": [
+      ["'Güneş' kelimesi aşağıdaki anlam özelliklerinin hangisine örnektir?",["Gerçek anlam", "Mecaz anlam", "Terim anlam", "Soyut anlam"], 0],
+      ["Aşağıdaki kelimelerden hangisi zıt (karşıt) anlamlıdır?",["Siyah - Kara", "Büyük - Küçük", "Okul - Mektep", "Fakir - Yoksul"], 1],
+      ["'Kitap, defter, kalem...' cümlesinde yay ayraç (noktalama) yerine hangisi gelmelidir?",["Nokta", "Üç nokta", "Soru işareti", "Virgül"], 1],
+      ["Hangisi özel isimdir?",["kalem", "ankara", "kedi", "masa"], 1],
+      ["'Koşmak' fiiline getirilen hangi ek onu kalıcı isim yapar?",["-ecek", "-ış", "-en", "-iyor"], 1]
+    ]
+  },
+  "6": {
+    "Temel Dini Bilgiler": [
+      ["İslam'da temizliğin (taharet) en önemli unsurlarından biri olan, su bulunmadığında toprakla yapılan temizliğe ne denir?",["Abdest", "Gusül", "Teyemmüm", "Boy abdesti"], 2],
+      ["Günde kaç vakit namaz farzdır?",["3 vakit", "4 vakit", "5 vakit", "6 vakit"], 2],
+      ["Cemaatle kılınması zorunlu olan ve haftada bir kez kılınan namaz hangisidir?",["Vakit namazları", "Cuma namazı", "Teravih namazı", "Bayram namazı"], 1],
+      ["Zekat kimlere farzdır?",["Çocuklara", "Maddi durumu iyi olan (nisap miktarı malı olan) müslümanlara", "Yolculara", "İhtiyarlara"], 1],
+      ["Ramazan ayında tutulan oruç hangi ay bittikten sonra başlar?",["Şaban", "Recep", "Muharrem", "Şevval"], 0]
+    ],
+    "Peygamberimizin Hayatı": [
+      ["Hz. Muhammed (s.a.v.) hangi yılda dünyaya gelmiştir?",["571", "632", "622", "610"], 0],
+      ["Peygamberimize ilk vahiy hangi mağarada gelmiştir?",["Sevr Mağarası", "Hira Mağarası", "Uhud Mağarası", "Nur Mağarası"], 1],
+      ["Hz. Muhammed'in süt annesinin adı nedir?",["Hz. Amine", "Hz. Halime", "Hz. Hatice", "Hz. Fatıma"], 1],
+      ["Peygamberimizin çocukluk ve gençliğinde dürüstlüğünden ötürü Mekkelilerin verdiği lakap nedir?",["El-Emin", "Es-Sıddık", "El-Faruk", "Zülnureyn"], 0],
+      ["Müslümanların Mekke'den Medine'ye göç etmesine ne ad verilir?",["Fetih", "Hicret", "İsra", "Mirac"], 1]
+    ],
+    "Matematik": [
+      ["6. sınıf konusudur: Çarpanlar ve katlar başlığına göre, 24 sayısının kaç tane pozitif tam sayı çarpanı vardır?",["6", "8", "10", "12"], 1],
+      ["İşlem önceliğinde ilk olarak hangisi yapılır?",["Toplama", "Parantez içi", "Çarpma", "Çıkarma"], 1],
+      ["Kümelerde kesişim sembolü hangisidir?",["U", "∩", "⊂", "∅"], 1],
+      ["Ondalık gösterimlerde 0,75 kesrinin en sade hali nedir?",["1/2", "3/4", "1/4", "2/3"], 1],
+      ["Oran konusunda, 3 boyacı 12 metre duvarı boyarsa, 1 boyacı kaç metre boyar?",["3", "4", "6", "12"], 1]
+    ],
+    "Fen Bilimleri": [
+      ["Güneş sisteminde güneşe en yakın gezegen hangisidir?",["Venüs", "Mars", "Merkür", "Jüpiter"], 2],
+      ["Destek ve hareket sistemini oluşturan yapılar arasında hangisi yer almaz?",["Kemik", "Eklem", "Kas", "Mide"], 3],
+      ["Kanı süzerek idrarı oluşturan organ hangisidir?",["Karaciğer", "Böbrek", "Kalp", "Akciğer"], 1],
+      ["Ses en hızlı hangi ortamda yayılır?",["Katı", "Sıvı", "Gaz", "Boşluk"], 0],
+      ["Kuvvetin birimi nedir?",["Joule", "Newton", "Watt", "Kilogram"], 1]
+    ]
+  },
+  "7": {
+    "Din Kültürü": [
+      ["Meleklerin özellikleri arasında hangisi yer almaz?",["Yemek yemezler", "Cinsiyetleri yoktur", "İrade sahibi olup günah işlerler", "Nurdan yaratılmışlardır"], 2],
+      ["Ölümden sonra yeniden dirilişin gerçekleşeceği yere ne denir?",["Cennet", "Ahiret", "Mahşer / Kıyamet", "Berzah"], 2],
+      ["Allah'ın her şeyi bilmesi ve görmesi sıfatı hangisidir?",["İlim - Basar", "Kudret", "Kelam", "Tekvin"], 0],
+      ["Kader inancıyla ilgili olarak insanın kendi iradesine ne denir?",["Külli irade", "Cüzi irade", "Kaza", "Tevekkül"], 1],
+      ["Hz. Adem'in ilk insan ve ilk peygamber olması hangi kavramla ilgilidir?",["Nübüvvet", "Vahiy", "Kıssalar", "İbadet"], 0]
+    ],
+    "Arapça": [
+      ["Arap alfabesinde kaç harf vardır?",["26", "28", "30", "29"], 1],
+      ["'Merhaba' kelimesinin Arapça karşılığı hangisidir?",["Sabahal-hayr", "Merhaban / Ahlan", "Maas-selame", "Şükran"], 1],
+      ["'Kitap' kelimesinin Arapçadaki karşılığı nedir?",["Kalem", "Kitab", "Mektep", "Kürsi"], 1],
+      ["'Ana' (Anne) kelimesi Arapçada nasıl ifade edilir?",["Ebon", "Ummun", "Ehun", "Ühtun"], 1],
+      ["'Güle güle' veya 'Allah'a ısmarladık' anlamındaki ifade hangisidir?",["Eyvallah", "Maas-selame", "Hayırlı sabahlar", "Bismillâh"], 1]
+    ],
+    "Matematik": [
+      ["Rasyonel sayılarda -3/4 sayısının toplama işlemine göre tersi kaçtır?",["3/4", "-3/4", "4/3", "-4/3"], 0],
+      ["Cebirsel ifadelerde 3x + 5 - x ifadesinin en sade hali nedir?",["2x + 5", "4x + 5", "3x", "5x"], 0],
+      ["Bir üçgende iç açılar toplamı kaç derecedir?",["90°", "180°", "360°", "270°"], 1],
+      ["Açıortay neyi ifade eder?",["Açıyı iki eşit parçaya bölen ışın", "Açıyı ortadan kaldıran doğru", "Komşu açılar", "Dik açı"], 0],
+      ["Veri analizi konusunda, bir veri grubundaki en büyük değer ile en küçük değer arasındaki farka ne denir?",["Açıklık", "Aritmetik ortalama", "Mod", "Medyan"], 0]
+    ]
+  },
+  "8": {
+    "Din Kültürü (Kader İnanışı)": [
+      ["Evrendeki uyum, düzen ve yasaları inceleyen bilimsel alanlara ne ad verilir?",["Sünnetullah (Adatullah)", "Kader", "Kaza", "Tevekkül"], 0],
+      ["İnsanın elinden gelen gayreti gösterip işin sonucunu Allah'a bırakmasına ne denir?",["Tevekkül", "Sabır", "İrade", "Kaza"], 0],
+      ["'Her nefis ölümü tadacaktır' ayeti hangi kavramın kapsamındadır?",["Ömür ve ecel", "Rızık", "Sağlık", "Zenginlik"], 0],
+      ["Zekat ibadetinde 'nisap' ne anlama gelir?",["Zenginlik ölçüsü / sınırı", "Sadaka miktarı", "Namaz saati", "Oruç günü"], 0],
+      ["Hz. Musa'nın hayatı anlatılırken hangi peygamberle mücadelesi öne çıkar?",["Firavun", "Nemrut", "Ebu Cehil", "Eblehe"], 0]
+    ],
+    "İnkılap Tarihi": [
+      ["Mustafa Kemal'in doğduğu şehir hangisidir?",["İstanbul", "Selanik", "Manastır", "Ankara"], 1],
+      ["I. Dünya Savaşı'nı başlatan kıvılcım hangi olaydır?",["Saraybosna Suikastı", "Fransız İhtilali", "Sanayi İnkılabı", "Çanakkale Savaşı"], 0],
+      ["Milli Mücadelenin fiilen başladığı olay / tarih hangisidir?",["19 Mayıs 1919 Samsun'a çıkış", "23 Nisan 1920", "30 Ağustos 1922", "29 Ekim 1923"], 0],
+      ["Misak-ı Millî kararları nerede kabul edilmiştir?",["Amasya Genelgesi", "Erzurum Kongresi", "Son Osmanlı Mebusan Meclisi", "Sivas Kongresi"], 2],
+      ["Lozan Barış Antlaşması hangi yılda imzalanmıştır?",["1920", "1922", "1923", "1926"], 2]
+    ],
+    "Matematik": [
+      ["En küçük asal sayı hangisidir?",["0", "1", "2", "3"], 2],
+      ["2³ üslü ifadesinin değeri kaçtır?",["6", "8", "9", "12"], 1],
+      ["Karekök 144 dışarı nasıl çıkar?",["10", "11", "12", "14"], 2],
+      ["Olasılık değerleri hangi aralıkta yer alır?",["0 ile 1 arasında", "-1 ile 1 arasında", "0 ile 100 arasında", "1 ile 10 arasında"], 0],
+      ["Bir dairenin alanı hangi formülle bulunur?",["pi * r²", "2 * pi * r", "4 * pi * r²", "a * b"], 0]
+    ]
+  },
+  "9": {
+    "Kur'an-ı Kerim": [
+      ["Tecvit ilminin kelime anlamı nedir?",["Güzel okumak, kurallarına uygun seslendirmek", "Ezberlemek", "Yazmak", "Anlamak"], 0],
+      ["Harf-i isti'la harflerinden biri hangisidir?",["He", "Sin", "Sad", "Te"], 2],
+      ["İnfitar suresi hangi cüzde yer alır?",["29. Cüz", "30. Cüz", "1. Cüz", "15. Cüz"], 1],
+      ["Meddi tabii (uzatma harfleri) kaç tanedir?",["2", "3", "4", "5"], 1],
+      ["İdhar kuralında nun-i sakin veya tenvinden sonra hangi harfler gelirse ses genizden okutulmaz açık okunur?",["Halk (boğaz) harfleri", "Kelb harfleri", "İhfai harfleri", "İklab harfleri"], 0]
+    ],
+    "Temel Dini Bilgiler": [
+      ["İslam'da bilgi kaynakları üçe ayrılır; bunlar hangileridir?",["Selim akıl, doğru haber (nakil), salim duyular", "Rüya, ilham, tahmin", "Gözlem, deney, mantık", "Felsefe, bilim, sanat"], 0],
+      ["İtikat ne demektir?",["İnanılacak esaslar, inanç ilkeleri", "Ameli hükümler", "Ahlaki kurallar", "İbadet şekilleri"], 0],
+      ["İslam'ın inanç esasları toplamda kaç esastır?",["5", "6", "7", "3"], 1],
+      ["Peygamberlere sıfat olan 'İsmet' ne anlama gelir?",["Günahsız / masum olmak", "Zeki olmak", "Doğru olmak", "Tebliğ etmek"], 0],
+      ["Amel kelimesinin terim anlamı nedir?",["Dini hükümleri isteyerek uygulama / davranış", "İnanmak", "Konuşmak", "Düşünmek"], 0]
+    ],
+    "Matematik": [
+      ["Önermelerde 'p veya q' önermesinin sembolü hangisidir?",["p ∧ q", "p ∨ q", "p => q", "p <=> q"], 1],
+      ["Küpler toplamı özdeşliği a³ + b³ formülü nasıl açılır?",["(a+b)(a²-ab+b²)", "(a-b)(a²+ab+b²)", "(a+b)³", "(a-b)³"], 0],
+      ["A = {1, 2, 3} kümesinin alt küme sayısı kaçtır?",["4", "6", "8", "16"], 2],
+      ["Fonksiyonlarda bire bir ve örtenlik neyi ifade eder?",["Eşleşme özelliklerini", "Kümelerin eleman sayısını", "Sayıların toplamını", "Grafik eğimini"], 0],
+      ["Denklemlerde ax + b = 0 birinci dereceden bir bilinmeyenli denklem çözüm kümesi nasıl bulunur?",["-b / a", "a / b", "a + b", "0"], 0]
+    ]
+  }
+};
+
+let currentGrade = "5", currentSubject = "Kur'an-ı Kerim", questions = [], index = 0, score = 0, locked = false, seconds = 600, timerId = null;
+const $ = id => document.getElementById(id);
+
+function updateSubjects() {
+  currentGrade = $("gradeSelect").value;
+  const subjectsObj = db[currentGrade] || {};
+  const names = Object.keys(subjectsObj);
+  if(!names.includes(currentSubject)) currentSubject = names[0];
+  
+  $("subjects").innerHTML = names.map(s => 
+    `<button class="choice ${s === currentSubject ? 'selected' : ''}" data-subject="${s}">📖 ${s}</button>`
+  ).join("");
+  
+  $("subjects").querySelectorAll("button").forEach(b => {
+    b.onclick = () => {
+      currentSubject = b.dataset.subject;
+      updateSubjects();
+    }
+  });
+}
+
+function startQuiz() {
+  currentGrade = $("gradeSelect").value;
+  const rawQuestions = (db[currentGrade] && db[currentGrade][currentSubject]) || [["Soru bulunamadı", ["A", "B", "C", "D"], 0]];
+  questions = [...rawQuestions].sort(() => Math.random() - 0.5).slice(0, 10);
+  index = 0; score = 0; seconds = 600; locked = false;
+  
+  $("setup").classList.add("hidden");
+  $("result").classList.add("hidden");
+  $("quiz").classList.remove("hidden");
+  $("quizInfo").textContent = `${currentGrade}. Sınıf · ${currentSubject}`;
+  
+  showQuestion();
+  clearInterval(timerId);
+  timerId = setInterval(tick, 1000);
+  updateTimer();
+}
+
+function tick() {
+  seconds--;
+  updateTimer();
+  if(seconds <= 0) finishQuiz(true);
+}
+
+function updateTimer() {
+  let m = Math.floor(seconds / 60), s = seconds % 60;
+  $("timer").textContent = `⏱ ${m}:${String(s).padStart(2, "0")}`;
+  if(seconds <= 60) $("timer").style.color = "var(--bad)";
+  else $("timer").style.color = "var(--muted)";
+}
+
+function showQuestion() {
+  locked = false;
+  let q = questions[index];
+  $("counter").textContent = `${index + 1} / ${questions.length}`;
+  $("progress").style.width = `${(index / questions.length) * 100}%`;
+  $("question").textContent = q[0];
+  $("answers").innerHTML = q[1].map((a, i) => `<button class="answer">${String.fromCharCode(65 + i)}. ${a}</button>`).join("");
+  $("answers").querySelectorAll("button").forEach((b, i) => b.onclick = () => chooseAnswer(i));
+  $("feedback").textContent = "";
+  $("next").disabled = true;
+  $("next").textContent = index === questions.length - 1 ? "Sonuçları Göster →" : "Sonraki Soru →";
+}
+
+function chooseAnswer(chosen) {
+  if(locked) return;
+  locked = true;
+  let correct = questions[index][2], buttons = $("answers").querySelectorAll("button");
+  buttons.forEach((b, i) => {
+    b.disabled = true;
+    if(i === correct) b.classList.add("correct");
+    if(i === chosen && i !== correct) b.classList.add("wrong");
+  });
+  if(chosen === correct) {
+    score++;
+    $("feedback").textContent = "✓ Doğru cevap, tebrikler!";
+    $("feedback").style.color = "#38ef7d";
+  } else {
+    $("feedback").textContent = "✗ Yanlış. Doğru cevap: " + questions[index][1][correct];
+    $("feedback").style.color = "var(--bad)";
+  }
+  $("next").disabled = false;
+}
+
+function nextQuestion() {
+  if(!locked) return;
+  if(index < questions.length - 1) {
+    index++;
+    showQuestion();
+  } else {
+    finishQuiz(false);
+  }
+}
+
+function finishQuiz(timeout) {
+  clearInterval(timerId);
+  $("quiz").classList.add("hidden");
+  $("result").classList.remove("hidden");
+  $("score").textContent = score + " / " + questions.length;
+  $("resultTitle").textContent = timeout ? "Süre Doldu!" : "Yazılı Çalışması Tamamlandı!";
+  $("resultText").textContent = `${currentGrade}. Sınıf · ${currentSubject} testinde ${questions.length} sorudan ${score} tanesini doğru bildin.`;
+  $("resultDetails").innerHTML = `<span class="pill">Doğru: ${score}</span><span class="pill">Yanlış/Boş: ${questions.length - score}</span><span class="pill">Başarı Notu: ${score * 10} Puan</span>`;
+  $("progress").style.width = "100%";
+}
+
+$("gradeSelect").onchange = updateSubjects;
+$("start").onclick = startQuiz;
+$("next").onclick = nextQuestion;
+$("quit").onclick = () => finishQuiz(false);
+$("again").onclick = () => {
+  $("result").classList.add("hidden");
+  $("setup").classList.remove("hidden");
+};
+
+updateSubjects();
+</script>
+</body>
+</html>
