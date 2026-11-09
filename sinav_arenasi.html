@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sınav Arenası</title>
+<style>
+:root{--bg:#10172a;--panel:#19243d;--panel2:#223252;--text:#f4f7ff;--muted:#b9c5dc;--accent:#69e0c1;--accent2:#8da7ff;--bad:#ff7888}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#263d68,#10172a 58%);font-family:system-ui,Segoe UI,Arial,sans-serif;color:var(--text);padding:22px}
+.wrap{max-width:850px;margin:auto}.brand{text-align:center;margin:12px 0 24px}.brand h1{font-size:clamp(2rem,6vw,3.4rem);margin:0;letter-spacing:-1px}.brand p{color:var(--muted);margin:8px 0}
+.card{background:rgba(25,36,61,.96);border:1px solid #344667;border-radius:22px;padding:clamp(18px,4vw,30px);box-shadow:0 18px 60px #0005}
+h2{margin-top:0}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px}
+button,select{font:inherit}button{cursor:pointer;border:0;border-radius:13px;padding:13px 16px;font-weight:700;color:#10172a;background:var(--accent);transition:.15s}
+button:hover{transform:translateY(-2px);filter:brightness(1.06)}button:focus-visible,select:focus-visible{outline:3px solid white;outline-offset:3px}
+.choice{background:var(--panel2);color:var(--text);border:1px solid #40577e;text-align:left;min-height:62px}.choice.selected{border:2px solid var(--accent);background:#244b55}
+.primary{width:100%;margin-top:20px;font-size:1.05rem}.secondary{background:#405477;color:white}.hidden{display:none!important}
+label{display:block;font-weight:700;margin:18px 0 8px}select{width:100%;padding:13px;border-radius:12px;background:#101a30;color:white;border:1px solid #50658a}
+.topline{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-weight:700;margin-bottom:16px}
+.track{height:9px;background:#0e1729;border-radius:20px;overflow:hidden;margin:12px 0 24px}.fill{height:100%;width:0;background:var(--accent);transition:width .25s}
+.question{font-size:clamp(1.15rem,3vw,1.55rem);line-height:1.45;margin:12px 0 22px}
+.answers{display:grid;gap:11px}.answer{background:#263958;color:white;text-align:left;border:1px solid #455e84}.answer.correct{background:#1c604f;border-color:#69e0c1}.answer.wrong{background:#633344;border-color:var(--bad)}.answer:disabled{cursor:default;opacity:1}
+.feedback{min-height:28px;margin-top:14px;font-weight:700}.actions{display:flex;gap:12px;margin-top:16px}.actions button{flex:1}
+.result{text-align:center}.score{font-size:3.6rem;font-weight:900;color:var(--accent);margin:8px}.pill{display:inline-block;background:#263958;padding:7px 12px;border-radius:30px;color:var(--muted);margin:4px}
+footer{text-align:center;color:#8fa0bd;font-size:.85rem;margin:18px}
+@media(max-width:520px){body{padding:12px}.actions{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="brand"><h1>📝 Sınav Arenası</h1><p>Seviyeni seç, sınava başla, puanını gör!</p></header>
+<main class="card" id="setup">
+<h2>Sınavını hazırla</h2>
+<p class="muted">Önce eğitim seviyeni, sonra sınıfını ve dersi seç.</p>
+<label for="level">Eğitim seviyesi</label>
+<select id="level"><option value="middle">Ortaokul</option><option value="high">Lise</option></select>
+<label for="grade">Sınıf</label><select id="grade"></select>
+<label>Ders</label><div class="grid" id="subjects"></div>
+<button class="primary" id="start">Sınava Başla →</button>
+<p class="muted" style="font-size:.9rem">Her sınavda 10 soru ve 10 dakika vardır. Sorular pratik amaçlıdır.</p>
+</main>
+<section class="card hidden" id="quiz">
+<div class="topline"><span id="quizInfo"></span><span id="timer">⏱ 10:00</span><span id="counter">1 / 10</span></div>
+<div class="track"><div class="fill" id="progress"></div></div>
+<div class="question" id="question"></div>
+<div class="answers" id="answers"></div>
+<div class="feedback" id="feedback" aria-live="polite"></div>
+<div class="actions"><button class="secondary" id="quit">Sınavı Bitir</button><button id="next" disabled>Sonraki Soru →</button></div>
+</section>
+<section class="card hidden result" id="result">
+<h2 id="resultTitle">Sınav tamamlandı!</h2><div class="score" id="score">0/10</div>
+<p id="resultText"></p><div id="resultDetails"></div>
+<button class="primary" id="again">Yeni Sınav</button>
+</section>
+<footer>© Sınav Arenası · Öğrenmek için pratik yap!</footer>
+</div>
+<script>
+const bank = {
+middle: {
+"Matematik":[
+["48 ÷ 6 işleminin sonucu kaçtır?",["6","7","8","9"],2],
+["3/4 kesrinin ondalık gösterimi hangisidir?",["0,25","0,5","0,75","1,25"],2],
+["Bir üçgenin iç açılarının toplamı kaç derecedir?",["90","180","270","360"],1],
+["12 ve 18'in en büyük ortak böleni kaçtır?",["3","6","9","12"],1],
+["5² işleminin sonucu kaçtır?",["10","15","20","25"],3],
+["200'ün %10'u kaçtır?",["10","20","30","40"],1],
+["Bir dikdörtgenin kısa kenarı 4 cm, uzun kenarı 7 cm. Alanı kaç cm²'dir?",["11","22","28","32"],2],
+["-3 + 8 işleminin sonucu kaçtır?",["-11","-5","5","11"],2],
+["1,2 + 0,35 işleminin sonucu kaçtır?",["1,25","1,45","1,55","1,65"],2],
+["Bir saatte kaç dakika vardır?",["30","45","60","100"],2]
+],
+"Fen Bilimleri":[
+["Dünya'nın doğal uydusu hangisidir?",["Güneş","Ay","Mars","Venüs"],1],
+["Kuvvetin birimi hangisidir?",["Metre","Kilogram","Newton","Litre"],2],
+["Bitkiler fotosentez yaparken hangi gazı kullanır?",["Oksijen","Karbondioksit","Azot","Hidrojen"],1],
+["Maddenin gaz hâline geçmesine ne denir?",["Donma","Yoğuşma","Erime","Buharlaşma"],3],
+["Güneş Sistemi'nin en büyük gezegeni hangisidir?",["Dünya","Mars","Jüpiter","Merkür"],2],
+["Ses hangi ortamda yayılmaz?",["Hava","Su","Demir","Boşluk"],3],
+["Kanı vücuda pompalayan organ hangisidir?",["Akciğer","Kalp","Mide","Böbrek"],1],
+["Basit elektrik devresinde enerji kaynağı hangisidir?",["Pil","Ampul","Anahtar","Kablo"],0],
+["Sürtünme kuvveti genellikle harekete nasıl etki eder?",["Hızı artırır","Hareketi zorlaştırır","Kütleyi artırır","Yönü hep değiştirir"],1],
+["Bir cismin kütlesi hangi araçla ölçülür?",["Termometre","Dinamometre","Eşit kollu terazi","Cetvel"],2]
+],
+"Türkçe":[
+["'Mutlu' kelimesinin eş anlamlısı hangisidir?",["Üzgün","Neşeli","Kızgın","Yorgun"],1],
+["Hangisi özel isimdir?",["şehir","kalem","Ankara","okul"],2],
+["'Koşarak' kelimesi hangi fiilimsi türüne örnektir?",["İsim-fiil","Sıfat-fiil","Zarf-fiil","Fiil değil"],2],
+["Bir olayın yaşandığı yere ne denir?",["Zaman","Mekân","Konu","Ana fikir"],1],
+["Hangisi zıt anlamlı kelime çiftidir?",["büyük-kocaman","hızlı-süratli","uzun-kısa","öğrenci-talebe"],2],
+["Soru cümlelerinin sonuna hangi işaret konur?",["Nokta","Virgül","Soru işareti","İki nokta"],2],
+["'Kitaplık' kelimesinin kökü hangisidir?",["kitap","lık","kitaplı","tap"],0],
+["Bir metinde asıl anlatılmak istenene ne denir?",["Başlık","Ana fikir","Örnek","Paragraf"],1],
+["Hangisi çoğul isimdir?",["ev","çiçekler","masa","defter"],1],
+["'Bugün hava çok güzel.' cümlesinde kaç kelime vardır?",["3","4","5","6"],1]
+],
+"İngilizce":[
+["'Apple' kelimesinin Türkçesi nedir?",["Armut","Elma","Üzüm","Portakal"],1],
+["'Good morning' ne demektir?",["İyi geceler","İyi akşamlar","Günaydın","Hoşça kal"],2],
+["'She' hangi zamirdir?",["O (kadın)","O (erkek)","Biz","Onlar"],0],
+["'I am ten years old.' cümlesi ne anlatır?",["Adresimi","Yaşımı","Hobimi","Saatimi"],1],
+["'Big' kelimesinin zıt anlamlısı hangisidir?",["Tall","Small","Long","Fast"],1],
+["'There are' hangi anlamda kullanılır?",["Var (çoğul)","Yok","Benim","O var"],0],
+["'Monday' haftanın hangi günüdür?",["Pazar","Pazartesi","Salı","Cuma"],1],
+["'Can you swim?' sorusuna olumlu kısa cevap hangisidir?",["Yes, I can.","No, I am.","Yes, I do.","I swim."],0],
+["'Hungry' ne demektir?",["Susamış","Yorgun","Aç","Mutlu"],2],
+["'Where' hangi anlamda kullanılır?",["Ne zaman","Nerede","Kim","Neden"],1]
+]
+},
+high: {
+"Matematik":[
+["2x + 5 = 17 denkleminde x kaçtır?",["5","6","7","11"],1],
+["√81 işleminin sonucu kaçtır?",["7","8","9","10"],2],
+["Bir üçgenin iç açıları toplamı kaç derecedir?",["90","180","270","360"],1],
+["3² + 4² işleminin sonucu kaçtır?",["12","25","49","7"],1],
+["f(x)=2x+1 ise f(3) kaçtır?",["5","6","7","8"],2],
+["%20'si 40 olan sayı kaçtır?",["80","100","160","200"],3],
+["5! (5 faktöriyel) kaçtır?",["25","60","100","120"],3],
+["Eğim, doğru üzerinde hangi iki değerin oranıdır?",["Yatay değişim / düşey değişim","Düşey değişim / yatay değişim","Alan / çevre","Hız / zaman"],1],
+["|−12| işleminin sonucu kaçtır?",["-12","-1","0","12"],3],
+["Bir zar atıldığında 6 gelme olasılığı kaçtır?",["1/2","1/3","1/6","1/4"],2]
+],
+"Fizik":[
+["SI birim sisteminde kuvvetin birimi nedir?",["Joule","Newton","Watt","Pascal"],1],
+["Sürat nasıl hesaplanır?",["Yol × zaman","Yol / zaman","Zaman / yol","Kütle × ivme"],1],
+["Işık boşlukta yaklaşık hangi hızla yayılır?",["300 km/s","3.000 km/s","300.000 km/s","3.000.000 km/s"],2],
+["Enerjinin SI birimi hangisidir?",["Newton","Joule","Watt","Amper"],1],
+["Bir cismin ivmesi hangi büyüklüğün değişim hızıdır?",["Konum","Kütle","Hız","Enerji"],2],
+["Elektrik akımının birimi hangisidir?",["Volt","Ohm","Amper","Watt"],2],
+["Aynı kuvvet daha küçük yüzeye uygulanırsa basınç ne olur?",["Azalır","Artar","Değişmez","Sıfır olur"],1],
+["Ses dalgaları hangi tür dalgadır?",["Elektromanyetik","Mekanik","Işık","Boşlukta yayılan"],1],
+["Güç hangi büyüklüğün zamana oranıdır?",["İş","Kütle","Kuvvet","Yol"],0],
+["Dünya'da yer çekimi ivmesi yaklaşık kaç m/s²'dir?",["1,8","5","9,8","20"],2]
+],
+"Kimya":[
+["Suyun kimyasal formülü hangisidir?",["CO₂","H₂O","O₂","NaCl"],1],
+["Atomun çekirdeğinde hangi tanecikler bulunur?",["Elektron ve proton","Proton ve nötron","Yalnız elektron","Nötron ve elektron"],1],
+["pH değeri 7 olan çözelti nasıl tanımlanır?",["Asidik","Bazik","Nötr","Tuzlu"],2],
+["Periyodik tabloda elementler neye göre sıralanır?",["Kütle numarası","Atom numarası","Yoğunluk","Renk"],1],
+["NaCl bileşiğinin yaygın adı nedir?",["Şeker","Yemek tuzu","Karbonat","Sirke"],1],
+["Bir elementin kimyasal özelliklerini taşıyan en küçük birimi nedir?",["Molekül","Atom","Hücre","Karışım"],1],
+["Aşağıdakilerden hangisi saf maddedir?",["Hava","Tuzlu su","Saf su","Ayran"],2],
+["Elektronun elektrik yükü nasıldır?",["Pozitif","Negatif","Nötr","Değişken"],1],
+["Kimyasal tepkimelerde toplam kütle için hangi ilke geçerlidir?",["Kütlenin korunumu","Enerjinin yok olması","Hacmin sıfırlanması","Atomların kaybolması"],0],
+["Oksijenin element sembolü hangisidir?",["Ox","O","Og","Ok"],1]
+],
+"Biyoloji":[
+["Canlıların kalıtsal bilgisini taşıyan molekül hangisidir?",["Protein","DNA","Yağ","Glikoz"],1],
+["Hücrenin yönetim merkezi hangisidir?",["Ribozom","Mitokondri","Çekirdek","Hücre zarı"],2],
+["Fotosentez hangi organelde gerçekleşir?",["Mitokondri","Kloroplast","Lizozom","Ribozom"],1],
+["İnsanda kanı pompalayan organ hangisidir?",["Akciğer","Kalp","Karaciğer","Mide"],1],
+["Canlıların enerji üretiminde görevli organel hangisidir?",["Mitokondri","Koful","Golgi","Çekirdek"],0],
+["Mitoz bölünme sonucunda kaç hücre oluşur?",["1","2","3","4"],1],
+["Ekosistemde üreticiler genellikle hangileridir?",["Bitkiler","Etçiller","Ayrıştırıcılar","Parazitler"],0],
+["İnsanda solunum gazlarının alışverişi nerede gerçekleşir?",["Bronş","Alveol","Yutak","Gırtlak"],1],
+["Protein sentezinde görev alan organel hangisidir?",["Ribozom","Koful","Lizozom","Sentrozom"],0],
+["Bir canlının yaşadığı doğal çevreye ne denir?",["Popülasyon","Habitat","Tür","Doku"],1]
+],
+"Türk Dili ve Edebiyatı":[
+["Benzetme sanatının diğer adı hangisidir?",["Tezat","Teşbih","Mecazımürsel","Kinaye"],1],
+["Roman türü aşağıdakilerden hangisine girer?",["Öğretici metin","Anlatmaya bağlı edebî metin","Tiyatro","Şiir"],1],
+["Bir şiirde dizelerin sonunda ses benzerliğine ne denir?",["Ölçü","Kafiye","Tema","Nazım birimi"],1],
+["'Kişileştirme' sanatında ne yapılır?",["İnsan dışı varlıklara insan özelliği verilir","Abartma yapılır","Zıtlık kurulur","Ses taklidi yapılır"],0],
+["Bir metnin ana duygusu veya düşüncesine ne denir?",["Tema","Kafiye","Ölçü","Redif"],0],
+["Halk edebiyatında hece ölçüsüyle söylenen şiir türlerinden biri hangisidir?",["Gazel","Koşma","Kaside","Mesnevi"],1],
+["Olay çevresinde gelişen kısa anlatı türü hangisidir?",["Makale","Hikâye","Deneme","Sohbet"],1],
+["Bir düşünceyi kanıtlama amacı taşıyan yazı türü hangisidir?",["Masal","Makale","Destan","Fabl"],1],
+["Aynı görevdeki ek veya kelimelerin dize sonunda tekrarlanmasına ne denir?",["Redif","Ölçü","Tema","Konu"],0],
+["Tiyatro eserlerinde konuşmalar hangi adla gösterilir?",["Dize","Replik","Paragraf","Beyit"],1]
+]
+}
+};
+let subject="Matematik", questions=[], index=0, score=0, locked=false, seconds=600, timerId=null, level="middle", grade="";
+const $=id=>document.getElementById(id);
+function updateGrades(){level=$("level").value;const list=level==="middle"?["5. sınıf","6. sınıf","7. sınıf","8. sınıf"]:["9. sınıf","10. sınıf","11. sınıf","12. sınıf"];$("grade").innerHTML=list.map(x=>`<option>${x}</option>`).join("");renderSubjects()}
+function renderSubjects(){level=$("level").value;const names=Object.keys(bank[level]);$("subjects").innerHTML=names.map((s,i)=>`<button class="choice ${s===subject?'selected':''}" data-subject="${s}">${["📐","🔬","📚","🌍","⚗️","🧬"][i]||"📘"} ${s}</button>`).join("");$("subjects").querySelectorAll("button").forEach(b=>b.onclick=()=>{subject=b.dataset.subject;renderSubjects()});if(!names.includes(subject))subject=names[0];}
+function shuffle(a){let x=[...a];for(let i=x.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]]}return x}
+function start(){grade=$("grade").value;questions=shuffle(bank[level][subject]).slice(0,10);index=0;score=0;seconds=600;locked=false;$("setup").classList.add("hidden");$("result").classList.add("hidden");$("quiz").classList.remove("hidden");$("quizInfo").textContent=grade+" · "+subject;showQuestion();clearInterval(timerId);timerId=setInterval(tick,1000);updateTimer()}
+function tick(){seconds--;updateTimer();if(seconds<=0)finish(true)}
+function updateTimer(){let m=Math.floor(seconds/60),s=seconds%60;$("timer").textContent=`⏱ ${m}:${String(s).padStart(2,"0")}`;if(seconds<=60)$("timer").style.color="var(--bad)"}
+function showQuestion(){locked=false;let q=questions[index];$("counter").textContent=`${index+1} / ${questions.length}`;$("progress").style.width=`${index/questions.length*100}%`;$("question").textContent=q[0];$("answers").innerHTML=q[1].map((a,i)=>`<button class="answer">${String.fromCharCode(65+i)}. ${a}</button>`).join("");$("answers").querySelectorAll("button").forEach((b,i)=>b.onclick=()=>choose(i));$("feedback").textContent="";$("next").disabled=true;$("next").textContent=index===questions.length-1?"Sonuçları Gör →":"Sonraki Soru →"}
+function choose(chosen){if(locked)return;locked=true;let correct=questions[index][2],buttons=$("answers").querySelectorAll("button");buttons.forEach((b,i)=>{b.disabled=true;if(i===correct)b.classList.add("correct");if(i===chosen&&i!==correct)b.classList.add("wrong")});if(chosen===correct){score++;$("feedback").textContent="✓ Doğru cevap!";$("feedback").style.color="var(--accent)"}else{$("feedback").textContent="✗ Doğru cevap: "+questions[index][1][correct];$("feedback").style.color="var(--bad)"}$("next").disabled=false}
+function next(){if(!locked)return;if(index<questions.length-1){index++;showQuestion()}else finish(false)}
+function finish(timeout){clearInterval(timerId);$("quiz").classList.add("hidden");$("result").classList.remove("hidden");$("score").textContent=score+" / "+questions.length;$("resultTitle").textContent=timeout?"Süre doldu!":"Sınav tamamlandı!";$("resultText").textContent=`${grade} · ${subject} sınavında ${questions.length} sorudan ${score} tanesini doğru yaptın.`;$("resultDetails").innerHTML=`<span class="pill">Doğru: ${score}</span><span class="pill">Yanlış/Boş: ${questions.length-score}</span><span class="pill">Başarı: ${score*10}%</span>`;$("progress").style.width="100%"}
+$("level").onchange=updateGrades;$("start").onclick=start;$("next").onclick=next;$("quit").onclick=()=>finish(false);$("again").onclick=()=>{$("result").classList.add("hidden");$("setup").classList.remove("hidden");$("timer").style.color="var(--muted)"};updateGrades();
+</script>
+</body>
+</html>
